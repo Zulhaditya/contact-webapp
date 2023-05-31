@@ -2,7 +2,17 @@ const express = require('express');
 const expressLayouts = require('express-ejs-layouts');
 const app = express();
 const port = 3000;
-const { loadContact, findContact } = require('./utils/contacts');
+const {
+  loadContact,
+  findContact,
+  addContact,
+  checkDuplicate,
+} = require('./utils/contacts');
+
+const { body, validationResult, check } = require('express-validator');
+const session = require('express-session');
+const cookieParser = require('cookie-parser');
+const flash = require('connect-flash');
 
 app.set('view engine', 'ejs');
 
@@ -11,6 +21,19 @@ app.use(expressLayouts);
 
 // built-in middleware
 app.use(express.static('public'));
+app.use(express.urlencoded({ extended: true }));
+
+// config flash
+app.use(cookieParser('secret'));
+app.use(
+  session({
+    cookie: { maxAge: 6000 },
+    secret: 'secret',
+    resave: true,
+    saveUninitialized: true,
+  })
+);
+app.use(flash());
 
 app.get('/', (req, res) => {
   const biodata = [
@@ -49,9 +72,50 @@ app.get('/contact', (req, res) => {
     title: 'Contact',
     layout: 'layouts/main-layout',
     contacts,
+    msg: req.flash('msg'),
   });
 });
 
+// route to add contact
+app.get('/contact/add', (req, res) => {
+  res.render('add-contact', {
+    title: 'Form add contact',
+    layout: 'layouts/main-layout',
+  });
+});
+
+// process data contact
+app.post(
+  '/contact',
+  [
+    body('name').custom((value) => {
+      const duplicate = checkDuplicate(value);
+      if (duplicate) {
+        throw new Error('Contact name already in use!');
+      }
+      return true;
+    }),
+    check('email', 'Invalid email!').isEmail(),
+    check('phone', 'Invalid phone number!').isMobilePhone('id-ID'),
+  ],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.render('add-contact', {
+        title: 'Add contact',
+        layout: 'layouts/main-layout',
+        errors: errors.array(),
+      });
+    } else {
+      addContact(req.body);
+      // send flash message
+      req.flash('msg', 'Contact successfully added!');
+      res.redirect('/contact');
+    }
+  }
+);
+
+// route to detail contact
 app.get('/contact/:name', (req, res) => {
   const contact = findContact(req.params.name);
   res.render('detail', {
@@ -67,5 +131,5 @@ app.use((req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Web server berjalan di http://localhost:${port}...`);
+  console.log(`Web server started on http://localhost:${port}...`);
 });

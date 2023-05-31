@@ -15,7 +15,18 @@
             <%= contact.phone %>
           </h6>
           <p class="card-text"><%= contact.email %></p>
-          <a href="/contact" class="card-link">&laquo; Back</a>
+          <a
+            href="/contact/edit/<%= contact.name %>"
+            class="btn btn-primary badge"
+            >Edit</a
+          >
+          <a
+            href="/contact/delete/<%= contact.name %>"
+            class="btn btn-danger badge"
+            onclick="return confirm('are you sure?')"
+            >Delete</a
+          >
+          <a href="/contact" class="card-link d-block mt-3">&laquo; Back</a>
         </div>
       </div>
       <% } %>

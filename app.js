@@ -7,6 +7,8 @@ const {
   findContact,
   addContact,
   checkDuplicate,
+  deleteContact,
+  updateContacts,
 } = require('./utils/contacts');
 
 const { body, validationResult, check } = require('express-validator');
@@ -36,25 +38,8 @@ app.use(
 app.use(flash());
 
 app.get('/', (req, res) => {
-  const biodata = [
-    {
-      nama: 'Zulhaditya Hapiz',
-      email: 'zulhaditya@gmail.com',
-    },
-    {
-      nama: 'Inayah Wulandari',
-      email: 'inayah@gmail.com',
-    },
-    {
-      nama: 'Killua Zoldyck',
-      email: 'killua@gmail.com',
-    },
-  ];
-
   res.render('index', {
-    nama: 'Hapiz',
     title: 'Home',
-    biodata,
     layout: 'layouts/main-layout',
   });
 });
@@ -110,6 +95,65 @@ app.post(
       addContact(req.body);
       // send flash message
       req.flash('msg', 'Contact successfully added!');
+      res.redirect('/contact');
+    }
+  }
+);
+
+// route for delete contact
+app.get('/contact/delete/:name', (req, res) => {
+  const contact = findContact(req.params.name);
+
+  // if contact not exist
+  if (!contact) {
+    res.status(404);
+    res.send('<h1>404</h1');
+  } else {
+    deleteContact(req.params.name);
+    // send flash message
+    req.flash('msg', 'Contact successfully deleted!');
+    res.redirect('/contact');
+  }
+});
+
+// route to edit contact
+app.get('/contact/edit/:name', (req, res) => {
+  const contact = findContact(req.params.name);
+
+  res.render('edit-contact', {
+    title: 'Form edit contact',
+    layout: 'layouts/main-layout',
+    contact,
+  });
+});
+
+// process for edit contact
+app.post(
+  '/contact/update',
+  [
+    body('name').custom((value, { req }) => {
+      const duplicate = checkDuplicate(value);
+      if (value !== req.body.oldName && duplicate) {
+        throw new Error('Contact name already in use!');
+      }
+      return true;
+    }),
+    check('email', 'Invalid email!').isEmail(),
+    check('phone', 'Invalid phone number!').isMobilePhone('id-ID'),
+  ],
+  (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      res.render('edit-contact', {
+        title: 'Edit contact',
+        layout: 'layouts/main-layout',
+        errors: errors.array(),
+        contact: req.body,
+      });
+    } else {
+      updateContacts(req.body);
+      // send flash message
+      req.flash('msg', 'Contact successfully edited!');
       res.redirect('/contact');
     }
   }

@@ -26,7 +26,7 @@ To customize and run this project, install it locally using npm:
 ```bash
 $ cd ../contact-webapp
 $ npm install
-$ npm start
+$ nodemon app.js
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
